@@ -3,7 +3,6 @@ package org.boofcv.android;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -11,22 +10,44 @@ import android.hardware.Camera;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ExpandableListView;
 import android.widget.SimpleExpandableListAdapter;
-import android.widget.Toast;
 
-import org.boofcv.android.fiducials.FiducialCalibrationActivity;
-import org.boofcv.android.fiducials.FiducialImageLibraryAcitivity;
-import org.boofcv.android.fiducials.FiducialSquareBinaryActivity;
-import org.boofcv.android.fiducials.FiducialSquareImageActivity;
+import org.boofcv.android.assoc.AssociationActivity;
+import org.boofcv.android.calib.CalibrationActivity;
+import org.boofcv.android.calib.UndistortDisplayActivity;
+import org.boofcv.android.detect.CannyEdgeActivity;
+import org.boofcv.android.detect.ContourShapeFittingActivity;
+import org.boofcv.android.detect.DetectBlackEllipseActivity;
+import org.boofcv.android.detect.DetectBlackPolygonActivity;
+import org.boofcv.android.detect.LineDisplayActivity;
+import org.boofcv.android.detect.PointDisplayActivity;
+import org.boofcv.android.detect.ScalePointDisplayActivity;
+import org.boofcv.android.ip.BinaryDisplayActivity;
+import org.boofcv.android.ip.BlurDisplayActivity;
+import org.boofcv.android.ip.EnhanceDisplayActivity;
+import org.boofcv.android.ip.GradientDisplayActivity;
+import org.boofcv.android.ip.ImageTransformActivity;
+import org.boofcv.android.ip.ThresholdDisplayActivity;
+import org.boofcv.android.recognition.FiducialCalibrationActivity;
+import org.boofcv.android.recognition.FiducialImageLibraryAcitivity;
+import org.boofcv.android.recognition.FiducialSquareBinaryActivity;
+import org.boofcv.android.recognition.FiducialSquareImageActivity;
+import org.boofcv.android.recognition.ImageClassificationActivity;
+import org.boofcv.android.sfm.DisparityActivity;
+import org.boofcv.android.sfm.MosaicDisplayActivity;
+import org.boofcv.android.sfm.StabilizeDisplayActivity;
+import org.boofcv.android.tracker.KltDisplayActivity;
+import org.boofcv.android.tracker.ObjectTrackerActivity;
+import org.boofcv.android.tracker.StaticBackgroundMotionActivity;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.ArrayList;
@@ -100,9 +121,9 @@ public class DemoMain extends Activity implements ExpandableListView.OnChildClic
 		Group detect = new Group("Detection");
 		Group assoc = new Group("Association");
 		Group tracker = new Group("Tracking");
-		Group fiducials = new Group("Fiducials");
 		Group calib = new Group("Calibration");
 		Group sfm = new Group("Structure From Motion");
+		Group recognition = new Group("Recognition");
 
 		ip.addChild("Blur",BlurDisplayActivity.class);
 		ip.addChild("Gradient",GradientDisplayActivity.class);
@@ -117,6 +138,7 @@ public class DemoMain extends Activity implements ExpandableListView.OnChildClic
 		detect.addChild("Canny Edge",CannyEdgeActivity.class);
 		detect.addChild("Contour Shapes",ContourShapeFittingActivity.class);
 		detect.addChild("Black Polygon",DetectBlackPolygonActivity.class);
+		detect.addChild("Black Ellipse",DetectBlackEllipseActivity.class);
 		// segmentation is just too slow right now
 //		detect.addChild("Segmentation",SegmentationDisplayActivity.class);
 
@@ -129,10 +151,11 @@ public class DemoMain extends Activity implements ExpandableListView.OnChildClic
 //		tracker.addChild("Point: Det-Desc-Assoc", DdaTrackerDisplayActivity.class);
 //		tracker.addChild("Point: Combined", CombinedTrackerDisplayActivity.class);
 
-		fiducials.addChild("Square Binary",FiducialSquareBinaryActivity.class);
-		fiducials.addChild("Square Image",FiducialSquareImageActivity.class);
-		fiducials.addChild("Square Image Library",FiducialImageLibraryAcitivity.class);
-		fiducials.addChild("Calibration",FiducialCalibrationActivity.class);
+		recognition.addChild("Image Classification", ImageClassificationActivity.class);
+		recognition.addChild("Square Binary",FiducialSquareBinaryActivity.class);
+		recognition.addChild("Square Image",FiducialSquareImageActivity.class);
+		recognition.addChild("Square Image Library",FiducialImageLibraryAcitivity.class);
+		recognition.addChild("Calib Targets",FiducialCalibrationActivity.class);
 
 		calib.addChild("Calibrate",CalibrationActivity.class);
 		calib.addChild("Undistort",UndistortDisplayActivity.class);
@@ -141,11 +164,13 @@ public class DemoMain extends Activity implements ExpandableListView.OnChildClic
 		sfm.addChild("Stabilization",StabilizeDisplayActivity.class);
 		sfm.addChild("Mosaic",MosaicDisplayActivity.class);
 
+
+
 		groups.add(ip);
 		groups.add(detect);
 		groups.add(assoc);
 		groups.add(tracker);
-		groups.add(fiducials);
+		groups.add(recognition);
 		groups.add(calib);
 		groups.add(sfm);
 	}
@@ -289,10 +314,10 @@ public class DemoMain extends Activity implements ExpandableListView.OnChildClic
 			FileInputStream fos = openFileInput("cam"+preference.cameraId+".txt");
 			Reader reader = new InputStreamReader(fos);
 			preference.intrinsic = CalibrationIO.load(reader);
-		} catch (FileNotFoundException e) {
-
-		} catch (IOException e) {
-			Toast.makeText(this, "Failed to load intrinsic parameters", Toast.LENGTH_SHORT).show();
+		} catch (RuntimeException e) {
+			Log.w("DemoMain", "Failed to load intrinsic parameters: "+e.getClass().getSimpleName());
+			e.printStackTrace();
+		} catch (FileNotFoundException ignore) {
 		}
 	}
 
